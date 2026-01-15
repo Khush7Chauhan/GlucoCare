@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreDiabetes AI - Healthcare Hackathon</title>
+    <link rel="stylesheet" href="style/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar hidden">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-heartbeat"></i> PreDiabetes AI</h3>
+            <button id="sidebar-toggle"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="upload">
+                <i class="fas fa-upload"></i> Upload Report
+            </a>
+            <a href="#" class="nav-item" data-page="history">
+                <i class="fas fa-history"></i> Patient History
+            </a>
+            <a href="#" class="nav-item" data-page="account">
+                <i class="fas fa-user"></i> Account
+            </a>
+            <button id="logout-btn" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </nav>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay hidden"></div>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Login Page -->
+        <div id="login-page" class="auth-page active">
+            <div class="auth-container">
+                <div class="auth-brand">
+                    <i class="fas fa-stethoscope"></i>
+                    <h1>PreDiabetes AI</h1>
+                    <p>Upload blood reports. Get personalized plans powered by Google AI.</p>
+                </div>
+                <div class="auth-form">
+                    <div class="form-tabs">
+                        <button class="tab-btn active" data-tab="login">Login</button>
+                        <button class="tab-btn" data-tab="signup">Sign Up</button>
+                    </div>
+                    <!-- Login Form -->
+                    <form id="login-form" class="auth-form-content active">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="login-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Login</button>
+                        <div id="login-error" class="error-message hidden"></div>
+                    </form>
+                    <!-- Signup Form -->
+                    <form id="signup-form" class="auth-form-content hidden">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="signup-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="signup-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="signup-password" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Create Account</button>
+                        <div id="signup-error" class="error-message hidden"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Page -->
+        <div id="upload-page" class="page hidden">
+            <div class="page-header">
+                <button id="mobile-sidebar-toggle" class="mobile-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Upload Blood Report</h1>
+            </div>
+            <div class="upload-container">
+                <div class="upload-dropzone" id="dropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h2>Drop your blood report here</h2>
+                    <p>PDF or Image (JPG, PNG) - Max 10MB</p>
+                    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                    <button id="browse-files" class="btn-secondary">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </button>
+                </div>
+                <div class="upload-details hidden" id="upload-details">
+                    <div class="file-info">
+                        <i class="fas fa-file-medical"></i>
+                        <span id="file-name"></span>
+                        <span id="file-size"></span>
+                    </div>
+                    <form id="patient-form" class="patient-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Age</label>
+                                <input type="number" id="patient-age" min="18" max="100" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Weight (kg)</label>
+                                <input type="number" id="patient-weight" step="0.1" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Activity Level</label>
+                            <select id="activity-level" required>
+                                <option value="">Select...</option>
+                                <option value="sedentary">Sedentary</option>
+                                <option value="light">Light Exercise</option>
+                                <option value="moderate">Moderate Exercise</option>
+                                <option value="active">Very Active</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Dietary Restrictions</label>
+                            <textarea id="diet-restrictions" placeholder="Vegetarian, allergies, etc..."></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary" id="analyze-btn" disabled>
+                            <span id="analyze-text">Analyze Report</span>
+                            <div id="analyze-spinner" class="spinner hidden"></div>
+                        </button>
+                    </form>
+                </div>
+                <div id="results-container" class="results-container hidden"></div>
+            </div>
+        </div>
+
+        <!-- History Page -->
+        <div id="history-page" class="page hidden">
+            <div class="page-header">
+                <button id="mobile-history-toggle" class="mobile-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Patient History</h1>
+            </div>
+            <div id="history-list" class="history-list">
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <h3>No reports yet</h3>
+                    <p>Upload your first blood report to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Page -->
+        <div id="account-page" class="page hidden">
+            <div class="page-header">
+                <button id="mobile-account-toggle" class="mobile-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>My Account</h1>
+            </div>
+            <div class="account-container">
+                <div class="account-info">
+                    <div class="avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h2 id="account-name">Loading...</h2>
+                    <p id="account-email">Loading...</p>
+                </div>
+                <button id="delete-account" class="btn-danger">Delete Account</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJxpMlNjTO135euVsPtFm-mUePSgwatWs",
+    authDomain: "glucocare-24dc6.firebaseapp.com",
+    projectId: "glucocare-24dc6",
+    storageBucket: "glucocare-24dc6.firebasestorage.app",
+    messagingSenderId: "714247159932",
+    appId: "1:714247159932:web:29428d10ab39e5a8de89f9",
+    measurementId: "G-71JNH1FTS3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  getAnalytics(app);
+
+  window.firebaseApp = app;
+  window.firebaseAuth = getAuth(app);
+  window.firebaseDB = getFirestore(app);
+</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    <!-- App Scripts -->
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/sidebar.js"></script>
+    <script type="module" src="js/upload.js"></script>
+    <script type="module" src="js/history.js"></script>
+</body>
+</html>
