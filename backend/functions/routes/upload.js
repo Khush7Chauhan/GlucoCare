@@ -4,47 +4,68 @@ const { uploadFile } = require("../services/storage");
 const { db } = require("../firebase-config");
 
 const router = express.Router();
-const upload = multer({ 
+
+// Multer config (memory storage)
+const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } 
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
-
+// ✅ Auth middleware
 const verifyAuth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) return res.status(401).json({ error: 'No token' });
-    
-    const { auth } = require('../firebase-config');
-    req.user = await auth.verifyToken(token);
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "No Authorization header" });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const decoded = await admin.auth().verifyIdToken(token);
+
+    req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    console.error("Auth error:", error);
+    res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 
-router.post("/", verifyAuth, upload.single("file"), async (req, res) => { 
+// ✅ Upload route
+router.post("/", verifyAuth, upload.single("file"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
     const userId = req.user.uid;
 
-    const fileUrl = await uploadFile(req.file, userId); 
+    // Upload to S3
+    const fileUrl = await uploadFile(req.file, userId);
 
-    const report = {
+    const reportData = {
       fileUrl,
       extractedData: {
         glucose: 110,
-        hba1c: 5.9
+        hba1c: 5.9,
       },
+      status: "complete",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: "complete"
     };
 
-    
-    await db.collection("users").doc(userId).collection("reports").add(report);
+    // Save to Firestore
+    const docRef = await db
+      .collection("users")
+      .doc(userId)
+      .collection("reports")
+      .add(reportData);
 
-    res.json({ success: true, reportId: report.id, fileUrl }); 
+    res.json({
+      success: true,
+      reportId: docRef.id,
+      fileUrl,
+    });
   } catch (err) {
-    console.error('Upload error:', err); 
+    console.error("Upload error:", err);
     res.status(500).json({ error: err.message });
   }
 });

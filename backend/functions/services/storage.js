@@ -1,19 +1,26 @@
-const { bucket } = require("../firebase-config");
-const { v4: uuid } = require("uuid");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
-async function uploadFile(file, userId) {
-  const fileName = `reports/${userId}/${uuid()}_${file.originalname}`;
-  const fileUpload = bucket.file(fileName);
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
 
-  await fileUpload.save(file.buffer, {
-    metadata: {
-      contentType: file.mimetype
-    }
-  });
+const uploadFile = async (file, userId) => {
+  const key = `reports/${userId}/${Date.now()}-${file.originalname}`;
 
-  await fileUpload.makePublic();
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype
+    })
+  );
 
-  return fileUpload.publicUrl();
-}
+  return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+};
 
 module.exports = { uploadFile };
