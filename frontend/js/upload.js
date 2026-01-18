@@ -1,16 +1,4 @@
 
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-storage.js";
-
-import {
-  collection,
-  addDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-
 class UploadManager {
   constructor() {
     this.dropzone = document.getElementById("dropzone");
@@ -18,73 +6,65 @@ class UploadManager {
     this.currentFile = null;
 
     this.auth = window.firebaseAuth;
-    this.db = window.firebaseDB;
-    this.storage = window.firebaseStorage;
 
     this.init();
   }
 
   init() {
-    this.dropzone.addEventListener("dragover", (e) => this.handleDragOver(e));
-    this.dropzone.addEventListener("dragleave", (e) => this.handleDragLeave(e));
-    this.dropzone.addEventListener("drop", (e) => this.handleDrop(e));
+    
+    this.dropzone.addEventListener("dragover", (e) => this.dragOver(e));
+    this.dropzone.addEventListener("dragleave", (e) => this.dragLeave(e));
+    this.dropzone.addEventListener("drop", (e) => this.dropFile(e));
 
-    document.getElementById("browse-files").addEventListener("click", () => {
+    document.getElementById("browse-files").onclick = () =>
       this.fileInput.click();
-    });
 
-    this.fileInput.addEventListener("change", (e) =>
-      this.handleFileSelect(e)
-    );
+    this.fileInput.onchange = (e) =>
+      this.handleFile(e.target.files[0]);
 
-    document
-      .getElementById("patient-form")
-      .addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.analyzeReport();
-      });
+    
+    document.getElementById("patient-form").onsubmit = (e) => {
+      e.preventDefault();
+      this.analyzeReport();
+    };
 
     document
       .querySelectorAll("#patient-form input, #patient-form select")
-      .forEach((input) => {
-        input.addEventListener("input", () =>
+      .forEach((el) =>
+        el.addEventListener("input", () =>
           this.toggleAnalyzeButton()
-        );
-      });
+        )
+      );
   }
 
-  handleDragOver(e) {
+  dragOver(e) {
     e.preventDefault();
     this.dropzone.classList.add("dragover");
   }
 
-  handleDragLeave(e) {
+  dragLeave(e) {
     e.preventDefault();
     this.dropzone.classList.remove("dragover");
   }
 
-  handleDrop(e) {
+  dropFile(e) {
     e.preventDefault();
     this.dropzone.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file) this.handleFile(file);
-  }
-
-  handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (file) this.handleFile(file);
+    if (e.dataTransfer.files.length > 0) {
+      this.handleFile(e.dataTransfer.files[0]);
+    }
   }
 
   handleFile(file) {
     if (!this.isValidFile(file)) {
-      alert("Upload PDF or Image (max 10MB)");
+      alert("Only PDF / Image files (max 10MB)");
       return;
     }
 
     this.currentFile = file;
     document.getElementById("file-name").textContent = file.name;
     document.getElementById("file-size").textContent =
-      this.formatFileSize(file.size);
+      this.formatSize(file.size);
 
     document.getElementById("upload-details").classList.remove("hidden");
     this.dropzone.style.display = "none";
@@ -92,16 +72,19 @@ class UploadManager {
   }
 
   isValidFile(file) {
-    const valid = [
+    const allowed = [
       "application/pdf",
       "image/jpeg",
       "image/png",
       "image/jpg",
     ];
-    return valid.includes(file.type) && file.size <= 10 * 1024 * 1024;
+    return (
+      allowed.includes(file.type) &&
+      file.size <= 10 * 1024 * 1024
+    );
   }
 
-  formatFileSize(bytes) {
+  formatSize(bytes) {
     const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
@@ -116,84 +99,57 @@ class UploadManager {
   async analyzeReport() {
     try {
       const user = this.auth.currentUser;
-      if (!user) throw new Error("Not logged in");
+      if (!user) throw new Error("User not logged in");
+
+      const token = await user.getIdToken();
 
       const btn = document.getElementById("analyze-btn");
       btn.disabled = true;
+      btn.innerText = "Analyzing...";
 
-      // 🔹 Upload file to Firebase Storage
-      const storageRef = ref(
-        this.storage,
-        `reports/${user.uid}/${Date.now()}_${this.currentFile.name}`
+      const formData = new FormData();
+      formData.append("file", this.currentFile);
+      formData.append(
+        "patientData",
+        JSON.stringify({
+          age: document.getElementById("patient-age").value,
+          weight: document.getElementById("patient-weight").value,
+          activity: document.getElementById("activity-level").value,
+          diet: document.getElementById("diet-restrictions").value,
+        })
       );
 
-      await uploadBytes(storageRef, this.currentFile);
-      const fileUrl = await getDownloadURL(storageRef);
-
-      // 🔹 Fake AI extraction (replace later with Gemini)
-      const extractedData = this.extractBloodValues();
-      const recommendations =
-        this.generateRecommendations(extractedData);
-
-      // 🔹 Save to Firestore
-      const docRef = await addDoc(
-        collection(this.db, "reports"),
-        {
-          userId: user.uid,
-          fileUrl,
-          extractedData,
-          recommendations,
-          status: "complete",
-          createdAt: serverTimestamp(),
-        }
+      const res = await fetch(
+       "http://127.0.0.1:5001/glucocare-24dc6/us-central1/api/upload"
+,
+      {
+       method: "POST",
+       headers: {
+       Authorization: `Bearer ${token}`,
+     },
+     body: formData,
+      }
       );
 
-      this.showResults({
-        extractedData,
-        recommendations,
-        id: docRef.id,
-      });
-    } catch (error) {
-      alert("Error: " + error.message);
+      if (!res.ok) throw new Error("Analysis failed");
+
+      const result = await res.json();
+      this.showResults(result);
+
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      document.getElementById("analyze-btn").disabled = false;
+      document.getElementById("analyze-btn").innerText = "Analyze Report";
     }
-  }
-
-  extractBloodValues() {
-    // 🔴 Replace with OCR / AI later
-    return {
-      glucose: 115,
-      hba1c: 6.1,
-    };
-  }
-
-  generateRecommendations(data) {
-    if (data.hba1c >= 5.7 && data.hba1c <= 6.4) {
-      return `
-## 🩺 Pre-Diabetes Detected
-
-### 🥗 Diet
-- Increase fiber-rich foods
-- Avoid refined sugar
-- Include oats, sprouts, leafy vegetables
-
-### 🏃 Exercise
-- 30 min brisk walk daily
-- Yoga or light cardio
-
-### ⚠️ Advice
-- Monitor blood sugar every 3 months
-- Consult a doctor if HbA1c increases
-`;
-    }
-    return "All values look normal. Maintain a healthy lifestyle.";
   }
 
   showResults(data) {
     const container = document.getElementById("results-container");
     container.innerHTML = `
       <h2>✨ Personalized Health Plan</h2>
-      <p><strong>Glucose:</strong> ${data.extractedData.glucose} mg/dL</p>
-      <p><strong>HbA1c:</strong> ${data.extractedData.hba1c}%</p>
+      <p><strong>Glucose:</strong> ${data.glucose} mg/dL</p>
+      <p><strong>HbA1c:</strong> ${data.hba1c}%</p>
       <div>${this.renderMarkdown(data.recommendations)}</div>
     `;
     container.classList.remove("hidden");

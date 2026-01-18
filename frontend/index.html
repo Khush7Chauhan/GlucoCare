@@ -1,33 +1,38 @@
-<!DOCTYPE html>
+
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PreDiabetes AI - Healthcare Hackathon</title>
-    <link rel="stylesheet" href="style/style.css">
+    <title>GlucoCare AI</title>
+    <link rel="stylesheet" href="style/style.css">  
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <!-- Sidebar -->
     <div id="sidebar" class="sidebar hidden">
         <div class="sidebar-header">
-            <h3><i class="fas fa-heartbeat"></i> PreDiabetes AI</h3>
+            <h3><i class="fas fa-heartbeat"></i> GlucoCare AI</h3>      
             <button id="sidebar-toggle"><i class="fas fa-times"></i></button>
         </div>
         <nav class="sidebar-nav">
-            <a href="#" class="nav-item active" data-page="upload">
-                <i class="fas fa-upload"></i> Upload Report
-            </a>
-            <a href="#" class="nav-item" data-page="history">
-                <i class="fas fa-history"></i> Patient History
-            </a>
-            <a href="#" class="nav-item" data-page="account">
-                <i class="fas fa-user"></i> Account
-            </a>
-            <button id="logout-btn" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
+    <a href="#" class="nav-item" data-page="account">
+        <i class="fas fa-user"></i> Account
+    </a>
+
+    <a href="#" class="nav-item active" data-page="upload">
+        <i class="fas fa-upload"></i> Upload Report
+    </a>
+
+    <a href="#" class="nav-item" data-page="history">
+        <i class="fas fa-history"></i> Patient History
+    </a>
+
+    <button id="logout-btn" class="logout-btn">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
         </nav>
+
     </div>
 
     <!-- Overlay -->
@@ -40,7 +45,7 @@
             <div class="auth-container">
                 <div class="auth-brand">
                     <i class="fas fa-stethoscope"></i>
-                    <h1>PreDiabetes AI</h1>
+                    <h1> GlucoCare</h1>
                     <p>Upload blood reports. Get personalized plans powered by Google AI.</p>
                 </div>
                 <div class="auth-form">
@@ -143,6 +148,32 @@
 
         <!-- History Page -->
         <div id="history-page" class="page hidden">
+            <div id="info-page" class="hidden">
+    
+    <div class="page-header">
+        <button id="mobile-toggle" class="mobile-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1>Prevention & Care</h1>
+    </div>
+
+    <div class="info-container">
+        <div class="info-header">
+            <h2>How to Prevent Complications</h2>
+            <p>Simple lifestyle changes can make a big difference.</p>
+        </div>
+
+        <div class="image-wrapper">
+            <img src="prevention.png" alt="Diabetes Prevention Infographic" class="info-graphic">
+        </div>
+
+            <div class="info-footer">
+            <button class="btn-primary" onclick="switchPage('upload')">
+                <i class="fas fa-arrow-left"></i> Back to Upload
+            </button>
+         </div>
+        </div>
+    </div>
             <div class="page-header">
                 <button id="mobile-history-toggle" class="mobile-toggle">
                     <i class="fas fa-bars"></i>
@@ -176,8 +207,10 @@
                 </div>
                 <button id="delete-account" class="btn-danger">Delete Account</button>
             </div>
+
         </div>
     </main>
+    
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -203,22 +236,54 @@
   window.firebaseAuth = getAuth(app);
   window.firebaseDB = getFirestore(app);
 </script>
-
+   
+    <script>
+  // Emulator detection
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    window.IS_EMULATOR = true;
+    window.EMULATOR_BASE = 'http://127.0.0.1:5001/YOUR_PROJECT_ID/us-central1/api';
+    window.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+    window.USE_EMULATOR_AUTH = true;
+  }
+</script>
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
     <!-- App Scripts -->
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/upload.js"></script>
     <script type="module" src="js/history.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Select the buttons and forms
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const forms = document.querySelectorAll('.auth-form-content');
+    // 2. Add click event to each button
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove 'active' class from all buttons
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            // Add 'active' class to the clicked button
+            button.classList.add('active');
+            // 3. Logic to switch the forms
+            const targetTab = button.getAttribute('data-tab'); // gets 'login' or 'signup'
+            const targetFormId = targetTab + '-form'; // creates 'login-form' or 'signup-form'
+            // Hide all forms first
+            forms.forEach(form => {
+                form.classList.add('hidden');
+                form.classList.remove('active');
+            });
+            // Show the matching form
+            const activeForm = document.getElementById(targetFormId);
+            if (activeForm) {
+                activeForm.classList.remove('hidden');
+                activeForm.classList.add('active');
+            }
+        });
+    });
+});
+
+    
+</script>
 </body>
 </html>
