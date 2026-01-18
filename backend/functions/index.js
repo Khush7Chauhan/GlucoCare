@@ -7,10 +7,6 @@ const uploadRoutes = require("./routes/upload");
 const historyRoutes = require("./routes/history");
 
 const app = express();
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log("Backend running on port", PORT);
-});
 
 app.use(cors({ origin: true }));
 app.use(express.json());
